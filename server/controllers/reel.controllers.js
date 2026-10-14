@@ -2,6 +2,7 @@ import Reel from '../models/reel.model.js'
 import { uploadVideoBufferToCloudinary } from '../utils/uploadVideoToCloudinary.js'
 import User from '../models/user.model.js'
 import { createNotification } from '../utils/notify.js'
+import { emitToContent } from '../socket.js'
 
 const MAX_REEL_DURATION_SECONDS = 90
 
@@ -65,6 +66,13 @@ export const updateLikes = async (req, res) => {
                 actor: { name: req.user.name, username: req.user.username, profileImage: req.user.profileImage }
             })
         }
+        emitToContent('reel', reel._id.toString(), 'content:like', {
+            type: 'reel',
+            id: reel._id.toString(),
+            liked: !liked,
+            likesCount: reel.likes.length,
+            userId
+        })
         return res.status(200).json({ liked: !liked, likesCount: reel.likes.length })
     } catch (error) {
         return res.status(500).json({ message: 'Unable to update like', error: error.message })

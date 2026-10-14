@@ -2,6 +2,7 @@ import Comment from '../models/comment.model.js'
 import Post from '../models/post.model.js'
 import Reel from '../models/reel.model.js'
 import { createNotification } from '../utils/notify.js'
+import { emitToContent } from '../socket.js'
 
 export const createComment = async (req, res) => {
     try {
@@ -17,6 +18,11 @@ export const createComment = async (req, res) => {
         if (owner && owner !== req.user._id.toString()) {
             await createNotification({ recipient: owner, sender: req.user._id, type: 'comment', message: `${req.user.name || req.user.username} commented on your ${postId ? 'post' : 'reel'}`, post: postId, reel: reelId, comment: populated._id, actor: { name: req.user.name, username: req.user.username, profileImage: req.user.profileImage } })
         }
+        emitToContent(postId ? 'post' : 'reel', (postId || reelId).toString(), 'content:comment:new', {
+            type: postId ? 'post' : 'reel',
+            id: (postId || reelId).toString(),
+            comment: populated
+        })
         return res.status(201).json({ message: 'Comment created', comment: populated })
     } catch (error) {
         return res.status(500).json({ message: 'Unable to create comment', error: error.message })

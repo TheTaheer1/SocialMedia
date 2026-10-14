@@ -2,6 +2,7 @@ import Post from '../models/post.model.js'
 import User from '../models/user.model.js'
 import { uploadBufferToCloudinary } from '../utils/uploadCloudinary.js'
 import { createNotification } from '../utils/notify.js'
+import { emitToContent } from '../socket.js'
 
 export const createPost = async (req, res) => {
     try {
@@ -42,6 +43,13 @@ export const updateLikes = async (req, res) => {
         if (!liked && post.author.toString() !== userId) {
             await createNotification({ recipient: post.author, sender: req.user._id, type: 'like', message: `${req.user.name || req.user.username} liked your post`, post: post._id, actor: { name: req.user.name, username: req.user.username, profileImage: req.user.profileImage } })
         }
+        emitToContent('post', post._id.toString(), 'content:like', {
+            type: 'post',
+            id: post._id.toString(),
+            liked: !liked,
+            likesCount: post.likes.length,
+            userId
+        })
         return res.status(200).json({ liked: !liked, likesCount: post.likes.length })
     } catch (error) {
         return res.status(500).json({ message: 'Unable to update like', error: error.message })

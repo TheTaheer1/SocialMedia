@@ -9,6 +9,7 @@ import { setReelsRedux } from '../redux/reelSlice'
 import { setCommentsRedux } from '../redux/commentSlice'
 import { useSelector } from 'react-redux'
 import MobileNav from '../components/MobileNav'
+import socket from '../socket'
 
 const initials = (value = '?') => value.slice(0, 2).toUpperCase()
 
@@ -298,6 +299,56 @@ function Home() {
       active = false
     }
   }, [dispatch])
+
+  // Keep likes and comments in sync for everyone viewing the same post/reel.
+  // The backend broadcasts these events to each content room over Socket.IO.
+  useEffect(() => {
+    const contentItems = [
+      ...posts.map((item) => ({ type: 'post', id: item._id })),
+      ...reels.map((item) => ({ type: 'reel', id: item._id }))
+    ]
+    const joinContentRooms = () => contentItems.forEach(({ type, id }) => socket.emit('join-content', { type, id }))
+    const handleLike = ({ type, id, liked: isLiked, userId }) => {
+      const updateLikes = (items) => items.map((item) => {
+        if (String(item._id) !== String(id)) return item
+        const currentLikes = item.likes || []
+        const withoutUser = currentLikes.filter((likeId) => String(likeId?._id || likeId) !== String(userId))
+        const nextLikes = isLiked ? [...withoutUser, userId] : withoutUser
+        return { ...item, likes: nextLikes }
+      })
+      if (type === 'post') {
+        setPosts(updateLikes)
+        dispatch(setPostsRedux(updateLikes))
+      } else {
+        setReels(updateLikes)
+        dispatch(setReelsRedux(updateLikes))
+      }
+      if (String(userId) === String(user?._id || user?.id)) {
+        setLiked((current) => ({ ...current, [`${type}-${id}`]: isLiked }))
+      }
+    }
+    const handleComment = ({ type, id, comment }) => {
+      if (!comment?._id) return
+      const key = `${type}-${id}`
+      setComments((current) => {
+        const existing = current[key] || []
+        if (existing.some((item) => String(item._id) === String(comment._id))) return current
+        const next = { ...current, [key]: [comment, ...existing] }
+        dispatch(setCommentsRedux({ key, comments: next[key] }))
+        return next
+      })
+    }
+    socket.on('connect', joinContentRooms)
+    socket.on('content:like', handleLike)
+    socket.on('content:comment:new', handleComment)
+    if (socket.connected) joinContentRooms()
+    return () => {
+      contentItems.forEach(({ type, id }) => socket.emit('leave-content', { type, id }))
+      socket.off('connect', joinContentRooms)
+      socket.off('content:like', handleLike)
+      socket.off('content:comment:new', handleComment)
+    }
+  }, [posts, reels, dispatch, user])
 
   useEffect(() => {
     let active = true
@@ -773,7 +824,7 @@ function Home() {
       <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center gap-5 px-4 sm:px-8">
           <Link to="/home" className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500 font-black">S</span>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500 text-xs font-black tracking-tight">SST</span>
             <span className="hidden sm:block">
               <b>SST Social</b>
               <small className="block text-slate-500">Your circle, your feed.</small>
