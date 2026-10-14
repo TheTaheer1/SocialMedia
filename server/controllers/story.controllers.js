@@ -2,6 +2,7 @@ import Story from '../models/story.model.js'
 import User from '../models/user.model.js'
 import { uploadBufferToCloudinary } from '../utils/uploadCloudinary.js'
 import { uploadVideoBufferToCloudinary } from '../utils/uploadVideoToCloudinary.js'
+import { emitToFeed } from '../socket.js'
 
 const STORY_LIFETIME = 24 * 60 * 60 * 1000
 const MAX_STORY_VIDEO_SECONDS = 30
@@ -21,6 +22,7 @@ export const createStory = async (req, res) => {
     const story = await Story.create({ author: req.user._id, caption, mediaType: isVideo ? 'video' : 'image', ...(isVideo ? { video: upload.secure_url } : { image: upload.secure_url }), expiresAt: new Date(Date.now() + STORY_LIFETIME) })
     await User.findByIdAndUpdate(req.user._id, { $push: { stories: story._id } })
     const populated = await Story.findById(story._id).populate('author', 'name username profileImage')
+    emitToFeed('story:new', { story: populated })
     return res.status(201).json({ message: 'Story created successfully', story: populated })
   } catch (error) {
     return res.status(500).json({ message: 'Unable to create story', error: error.message })

@@ -300,6 +300,25 @@ function Home() {
     }
   }, [dispatch])
 
+  // Show new stories immediately, but only for the current user and followed users.
+  useEffect(() => {
+    const handleNewStory = ({ story }) => {
+      if (!story?._id) return
+      const authorId = String(story.author?._id || story.author || '')
+      const isOwnStory = authorId === String(user?._id || user?.id) || story.author?.username === user?.username
+      const followsAuthor = (user?.followings || []).some((following) => String(following?._id || following) === authorId)
+      if (!isOwnStory && !followsAuthor) return
+      setStories((current) => {
+        if (current.some((item) => String(item._id) === String(story._id))) return current
+        const next = [...current, story].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        dispatch(setStoriesRedux(next))
+        return next
+      })
+    }
+    socket.on('story:new', handleNewStory)
+    return () => socket.off('story:new', handleNewStory)
+  }, [dispatch, user])
+
   // Keep likes and comments in sync for everyone viewing the same post/reel.
   // The backend broadcasts these events to each content room over Socket.IO.
   useEffect(() => {
