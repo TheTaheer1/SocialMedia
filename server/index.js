@@ -43,6 +43,13 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
+app.get('/health', (_req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        service: 'SocialMedia',
+        timestamp: new Date().toISOString()
+    })
+})
 app.use('/users' , userRoutes)
 app.use('/posts', postRoutes)
 app.use('/reels', reelRoutes)
