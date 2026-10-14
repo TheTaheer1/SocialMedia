@@ -2,7 +2,7 @@ import Post from '../models/post.model.js'
 import User from '../models/user.model.js'
 import { uploadBufferToCloudinary } from '../utils/uploadCloudinary.js'
 import { createNotification } from '../utils/notify.js'
-import { emitToContent } from '../socket.js'
+import { emitToContent, emitToFeed } from '../socket.js'
 
 export const createPost = async (req, res) => {
     try {
@@ -16,6 +16,7 @@ export const createPost = async (req, res) => {
         const post = await Post.create({ author: req.user._id, caption, image })
         await User.findByIdAndUpdate(req.user._id, { $push: { posts: post._id } })
         const populatedPost = await Post.findById(post._id).populate('author', 'name username profileImage')
+        emitToFeed('content:new', { type: 'post', item: populatedPost })
         return res.status(201).json({ message: 'Post created successfully', post: populatedPost })
     } catch (error) {
         return res.status(500).json({ message: 'Unable to create post', error: error.message })

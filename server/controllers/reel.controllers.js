@@ -2,7 +2,7 @@ import Reel from '../models/reel.model.js'
 import { uploadVideoBufferToCloudinary } from '../utils/uploadVideoToCloudinary.js'
 import User from '../models/user.model.js'
 import { createNotification } from '../utils/notify.js'
-import { emitToContent } from '../socket.js'
+import { emitToContent, emitToFeed } from '../socket.js'
 
 const MAX_REEL_DURATION_SECONDS = 90
 
@@ -19,6 +19,7 @@ export const createReel = async (req, res) => {
         const reel = await Reel.create({ author: req.user._id, caption, video: upload.secure_url })
         await User.findByIdAndUpdate(req.user._id, { $push: { reels: reel._id } })
         const populatedReel = await Reel.findById(reel._id).populate('author', 'name username profileImage')
+        emitToFeed('content:new', { type: 'reel', item: populatedReel })
         return res.status(201).json({ message: 'Reel created successfully', reel: populatedReel })
     } catch (error) {
         return res.status(500).json({ message: 'Unable to create reel', error: error.message })

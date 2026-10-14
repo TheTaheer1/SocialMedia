@@ -66,3 +66,7 @@ export const emitToUser = (userId, event, payload) => {
 export const emitToContent = (type, id, event, payload) => {
   if (io && type && id) io.to(`${type}:${id}`).emit(event, payload)
 }
+
+export const emitToFeed = (event, payload) => {
+  if (io) io.emit(event, payload)
+}

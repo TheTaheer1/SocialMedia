@@ -338,15 +338,35 @@ function Home() {
         return next
       })
     }
+    const handleNewContent = ({ type, item }) => {
+      if (!item?._id) return
+      if (type === 'post') {
+        setPosts((current) => {
+          if (current.some((post) => String(post._id) === String(item._id))) return current
+          const next = [item, ...current]
+          dispatch(setPostsRedux(next))
+          return next
+        })
+      } else if (type === 'reel') {
+        setReels((current) => {
+          if (current.some((reel) => String(reel._id) === String(item._id))) return current
+          const next = [item, ...current]
+          dispatch(setReelsRedux(next))
+          return next
+        })
+      }
+    }
     socket.on('connect', joinContentRooms)
     socket.on('content:like', handleLike)
     socket.on('content:comment:new', handleComment)
+    socket.on('content:new', handleNewContent)
     if (socket.connected) joinContentRooms()
     return () => {
       contentItems.forEach(({ type, id }) => socket.emit('leave-content', { type, id }))
       socket.off('connect', joinContentRooms)
       socket.off('content:like', handleLike)
       socket.off('content:comment:new', handleComment)
+      socket.off('content:new', handleNewContent)
     }
   }, [posts, reels, dispatch, user])
 
