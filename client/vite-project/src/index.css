@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* Responsive social layout: stacked on phones, sidebar + feed on larger screens. */
+.social-layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Keep the commenter name visually separated from the comment text. */
+b.mr-1 {
+  display: inline-block;
+  margin-right: 0.5rem !important;
+}
+
+html { scroll-behavior: smooth; }
+
+body { overflow-x: hidden; }
+
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid rgb(129 140 248);
+  outline-offset: 2px;
+}
+
+.surface-card {
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.surface-card:hover {
+  border-color: rgb(71 85 105);
+  box-shadow: 0 14px 35px rgb(2 6 23 / 0.22);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(71 85 105) transparent;
+}
+
+@media (max-width: 767px) {
+  .social-layout { gap: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* Story progress advances for the same 30 seconds used by the viewer timer. */
+.story-progress-active {
+  width: 0;
+  animation: story-progress-fill 30s linear forwards;
+}
+
+@keyframes story-progress-fill {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@media (min-width: 768px) {
+  .social-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 7fr) minmax(0, 3fr);
+  }
+
+  .social-layout > aside:first-child {
+    grid-column: 1;
+  }
+
+  .social-layout > section {
+    grid-column: 2 / 4;
+  }
+}

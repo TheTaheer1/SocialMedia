@@ -1,0 +1,14 @@
+# Dependencies and generated output
+node_modules/
+dist/
+*.log
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Runtime uploads and local files
+server/uploads/
+.DS_Store
+
